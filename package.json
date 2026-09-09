@@ -3,6 +3,7 @@
 	"displayName": "AWS CodeCommit Manager",
 	"description": "Manage info, actions and tasks about code in AWS CodeCommit",
 	"version": "0.0.1",
+	"publisher": "aws-codecommit-manager",
 	"engines": {
 		"vscode": "^1.136.0"
 	},
