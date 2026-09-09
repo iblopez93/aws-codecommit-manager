@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-09-09
+goal: Gestionar repositorios, ramas, archivos, commits y pull requests de AWS
+  CodeCommit desde VS Code con una integración comparable a GitHub.

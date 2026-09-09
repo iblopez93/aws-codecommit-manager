@@ -1,52 +1,299 @@
 {
-  "name": "aws-codecommit-manager",
-  "displayName": "aws-codecommit-manager",
-  "description": "Manage info, actions and tasks about code in AWS CodeCommit",
-  "version": "0.0.1",
-  "engines": {
-    "vscode": "^1.136.0"
-  },
-  "categories": [
-    "Other"
-  ],
-  "activationEvents": [],
-  "main": "./dist/extension.js",
-  "contributes": {
-    "commands": [
-      {
-        "command": "aws-codecommit-manager.helloWorld",
-        "title": "Hello World"
-      }
-    ]
-  },
-  "scripts": {
-    "vscode:prepublish": "npm run package",
-    "compile": "npm run check-types && npm run lint && node esbuild.js",
-    "watch": "npm-run-all -p watch:*",
-    "watch:esbuild": "node esbuild.js --watch",
-    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
-    "package": "npm run check-types && npm run lint && node esbuild.js --production",
-    "compile-tests": "tsc -p . --outDir out",
-    "watch-tests": "tsc -p . -w --outDir out",
-    "pretest": "npm run compile-tests && npm run compile && npm run lint",
-    "check-types": "tsc --noEmit",
-    "lint": "eslint src",
-    "test": "vscode-test"
-  },
-  "devDependencies": {
-    "@types/vscode": "^1.136.0",
-    "@types/mocha": "^10.0.10",
-    "@types/node": "24.x",
-    "typescript-eslint": "^8.61.1",
-    "eslint": "^10.5.0",
-    "esbuild": "^0.28.1",
-    "npm-run-all": "^4.1.5",
-    "typescript": "^6.0.3",
-    "@vscode/test-cli": "^0.0.15",
-    "@vscode/test-electron": "^3.0.0"
-  },
-  "overrides": {
-    "diff": "^8.0.4",
-    "serialize-javascript": "^7.0.6"
-  }
+	"name": "aws-codecommit-manager",
+	"displayName": "AWS CodeCommit Manager",
+	"description": "Manage info, actions and tasks about code in AWS CodeCommit",
+	"version": "0.0.1",
+	"engines": {
+		"vscode": "^1.136.0"
+	},
+	"categories": [
+		"Source Control",
+		"Other"
+	],
+	"activationEvents": [
+		"onView:aws-codecommit-manager.view"
+	],
+	"main": "./dist/extension.js",
+	"contributes": {
+		"views": {
+			"explorer": [
+				{
+					"id": "aws-codecommit-manager.view",
+					"name": "AWS CodeCommit"
+				}
+			]
+		},
+		"viewsWelcome": [
+			{
+				"view": "aws-codecommit-manager.view",
+				"contents": "AWS CodeCommit repositories will appear here.\n[Configure AWS CodeCommit](command:aws-codecommit-manager.configure)\n[Refresh](command:aws-codecommit-manager.refresh)"
+			}
+		],
+		"commands": [
+			{
+				"command": "aws-codecommit-manager.configure",
+				"title": "Configure AWS CodeCommit",
+				"category": "AWS CodeCommit",
+				"icon": "$(gear)"
+			},
+			{
+				"command": "aws-codecommit-manager.refresh",
+				"title": "Refresh",
+				"category": "AWS CodeCommit",
+				"icon": "$(refresh)"
+			},
+			{
+				"command": "aws-codecommit-manager.openFile",
+				"title": "Open Remote File",
+				"category": "AWS CodeCommit",
+				"icon": "$(open-preview)"
+			},
+			{
+				"command": "aws-codecommit-manager.createBranch",
+				"title": "Create Branch",
+				"category": "AWS CodeCommit",
+				"icon": "$(git-branch)"
+			},
+			{
+				"command": "aws-codecommit-manager.deleteBranch",
+				"title": "Delete Branch",
+				"category": "AWS CodeCommit",
+				"icon": "$(trash)"
+			},
+			{
+				"command": "aws-codecommit-manager.setDefaultBranch",
+				"title": "Set as Default Branch",
+				"category": "AWS CodeCommit"
+			},
+			{
+				"command": "aws-codecommit-manager.putFile",
+				"title": "Upload File",
+				"category": "AWS CodeCommit",
+				"icon": "$(cloud-upload)"
+			},
+			{
+				"command": "aws-codecommit-manager.deleteFile",
+				"title": "Delete Remote File",
+				"category": "AWS CodeCommit",
+				"icon": "$(trash)"
+			},
+			{
+				"command": "aws-codecommit-manager.createCommit",
+				"title": "Create Commit from Local Files",
+				"category": "AWS CodeCommit",
+				"icon": "$(git-commit)"
+			},
+			{
+				"command": "aws-codecommit-manager.createPullRequest",
+				"title": "Create Pull Request",
+				"category": "AWS CodeCommit",
+				"icon": "$(git-pull-request)"
+			},
+			{
+				"command": "aws-codecommit-manager.updatePullRequestTitle",
+				"title": "Update Pull Request Title",
+				"category": "AWS CodeCommit"
+			},
+			{
+				"command": "aws-codecommit-manager.updatePullRequestDescription",
+				"title": "Update Pull Request Description",
+				"category": "AWS CodeCommit"
+			},
+			{
+				"command": "aws-codecommit-manager.publishPullRequest",
+				"title": "Open / Publish Pull Request",
+				"category": "AWS CodeCommit",
+				"icon": "$(check)"
+			},
+			{
+				"command": "aws-codecommit-manager.closePullRequest",
+				"title": "Close Pull Request",
+				"category": "AWS CodeCommit",
+				"icon": "$(close)"
+			},
+			{
+				"command": "aws-codecommit-manager.addPullRequestComment",
+				"title": "Add Review Comment",
+				"category": "AWS CodeCommit",
+				"icon": "$(comment)"
+			},
+			{
+				"command": "aws-codecommit-manager.loadMoreCommits",
+				"title": "Load More Commits",
+				"category": "AWS CodeCommit"
+			}
+		],
+		"menus": {
+			"view/title": [
+				{
+					"command": "aws-codecommit-manager.refresh",
+					"when": "view == aws-codecommit-manager.view",
+					"group": "navigation"
+				},
+				{
+					"command": "aws-codecommit-manager.configure",
+					"when": "view == aws-codecommit-manager.view",
+					"group": "navigation@2"
+				}
+			],
+			"view/item/context": [
+				{
+					"command": "aws-codecommit-manager.refresh",
+					"when": "view == aws-codecommit-manager.view && viewItem == repository",
+					"group": "inline"
+				},
+				{
+					"command": "aws-codecommit-manager.createBranch",
+					"when": "view == aws-codecommit-manager.view && viewItem == repository",
+					"group": "1_branches"
+				},
+				{
+					"command": "aws-codecommit-manager.createPullRequest",
+					"when": "view == aws-codecommit-manager.view && viewItem == repository",
+					"group": "2_pullrequests"
+				},
+				{
+					"command": "aws-codecommit-manager.createBranch",
+					"when": "view == aws-codecommit-manager.view && viewItem == branchesGroup",
+					"group": "1_branches"
+				},
+				{
+					"command": "aws-codecommit-manager.refresh",
+					"when": "view == aws-codecommit-manager.view && viewItem == branch",
+					"group": "inline"
+				},
+				{
+					"command": "aws-codecommit-manager.setDefaultBranch",
+					"when": "view == aws-codecommit-manager.view && viewItem == branch",
+					"group": "1_branches"
+				},
+				{
+					"command": "aws-codecommit-manager.deleteBranch",
+					"when": "view == aws-codecommit-manager.view && viewItem == branch",
+					"group": "3_danger"
+				},
+				{
+					"command": "aws-codecommit-manager.createPullRequest",
+					"when": "view == aws-codecommit-manager.view && viewItem == branch",
+					"group": "2_pullrequests"
+				},
+				{
+					"command": "aws-codecommit-manager.putFile",
+					"when": "view == aws-codecommit-manager.view && (viewItem == branch || viewItem == filesGroup || viewItem == folder)",
+					"group": "1_files"
+				},
+				{
+					"command": "aws-codecommit-manager.createCommit",
+					"when": "view == aws-codecommit-manager.view && (viewItem == branch || viewItem == filesGroup || viewItem == folder)",
+					"group": "2_commits"
+				},
+				{
+					"command": "aws-codecommit-manager.openFile",
+					"when": "view == aws-codecommit-manager.view && viewItem == file",
+					"group": "inline"
+				},
+				{
+					"command": "aws-codecommit-manager.deleteFile",
+					"when": "view == aws-codecommit-manager.view && viewItem == file",
+					"group": "3_danger"
+				},
+				{
+					"command": "aws-codecommit-manager.createPullRequest",
+					"when": "view == aws-codecommit-manager.view && viewItem == pullRequestsGroup",
+					"group": "1_pullrequests"
+				},
+				{
+					"command": "aws-codecommit-manager.refresh",
+					"when": "view == aws-codecommit-manager.view && viewItem == pullRequestsGroup",
+					"group": "navigation"
+				},
+				{
+					"command": "aws-codecommit-manager.updatePullRequestTitle",
+					"when": "view == aws-codecommit-manager.view && viewItem == pullRequest",
+					"group": "1_pullrequests"
+				},
+				{
+					"command": "aws-codecommit-manager.updatePullRequestDescription",
+					"when": "view == aws-codecommit-manager.view && viewItem == pullRequest",
+					"group": "1_pullrequests"
+				},
+				{
+					"command": "aws-codecommit-manager.publishPullRequest",
+					"when": "view == aws-codecommit-manager.view && viewItem == pullRequest",
+					"group": "2_actions"
+				},
+				{
+					"command": "aws-codecommit-manager.closePullRequest",
+					"when": "view == aws-codecommit-manager.view && viewItem == pullRequest",
+					"group": "3_danger"
+				},
+				{
+					"command": "aws-codecommit-manager.addPullRequestComment",
+					"when": "view == aws-codecommit-manager.view && (viewItem == pullRequest || viewItem == commentsGroup)",
+					"group": "1_comments"
+				},
+				{
+					"command": "aws-codecommit-manager.loadMoreCommits",
+					"when": "view == aws-codecommit-manager.view && viewItem == loadMoreCommits",
+					"group": "inline"
+				}
+			]
+		},
+		"configuration": {
+			"title": "AWS CodeCommit",
+			"properties": {
+				"aws-codecommit-manager.region": {
+					"type": "string",
+					"default": "",
+					"markdownDescription": "AWS region used by CodeCommit, for example `us-east-1`. Leave empty to use the SDK default region resolution."
+				},
+				"aws-codecommit-manager.profile": {
+					"type": "string",
+					"default": "",
+					"markdownDescription": "Named AWS profile from `~/.aws/credentials` or `~/.aws/config` used for credentials. Leave empty to use the default credential chain."
+				},
+				"aws-codecommit-manager.commitHistoryLimit": {
+					"type": "number",
+					"default": 100,
+					"minimum": 1,
+					"maximum": 10000,
+					"markdownDescription": "Maximum number of commits loaded when expanding a branch commit history."
+				}
+			}
+		}
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run package",
+		"compile": "npm run check-types && npm run lint && node esbuild.js",
+		"watch": "npm-run-all -p watch:*",
+		"watch:esbuild": "node esbuild.js --watch",
+		"watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+		"package": "npm run check-types && npm run lint && node esbuild.js --production",
+		"compile-tests": "tsc -p . --outDir out",
+		"watch-tests": "tsc -p . -w --outDir out",
+		"pretest": "npm run compile-tests && npm run compile && npm run lint",
+		"check-types": "tsc --noEmit",
+		"lint": "eslint src",
+		"test": "vscode-test"
+	},
+	"devDependencies": {
+		"@types/mocha": "^10.0.10",
+		"@types/node": "24.x",
+		"@types/vscode": "^1.136.0",
+		"@vscode/test-cli": "^0.0.15",
+		"@vscode/test-electron": "^3.0.0",
+		"esbuild": "^0.28.1",
+		"eslint": "^10.5.0",
+		"npm-run-all": "^4.1.5",
+		"typescript": "^6.0.3",
+		"typescript-eslint": "^8.61.1"
+	},
+	"overrides": {
+		"diff": "^8.0.4",
+		"serialize-javascript": "^7.0.6"
+	},
+	"dependencies": {
+		"@aws-sdk/client-codecommit": "^3.1128.0",
+		"@aws-sdk/credential-providers": "^3.1128.0"
+	}
 }
