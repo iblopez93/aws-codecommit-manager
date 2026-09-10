@@ -5,7 +5,7 @@
 import * as vscode from 'vscode';
 
 import { getAwsSettings } from '../aws/config';
-import { isConnected } from '../aws/client';
+import { getActiveProfile, isConnected } from '../aws/client';
 
 let statusBarItem: vscode.StatusBarItem | undefined;
 
@@ -24,9 +24,10 @@ export async function updateStatusBar(): Promise<void> {
 	if (!statusBarItem) {
 		return;
 	}
-	const connected = await isConnected(getAwsSettings());
+	const settings = getAwsSettings();
+	const connected = await isConnected(settings);
 	if (connected) {
-		statusBarItem.text = '$(check) AWS CodeCommit: Connected';
+		statusBarItem.text = `$(check) AWS CodeCommit: Connected (${getActiveProfile(settings)})`;
 		statusBarItem.backgroundColor = undefined;
 	} else {
 		statusBarItem.text = '$(plug) AWS CodeCommit: Disconnected';
