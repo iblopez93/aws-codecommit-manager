@@ -7,7 +7,9 @@ import * as vscode from 'vscode';
 import { CONFIG_SECTION, getAwsSettings } from '../aws/config';
 import { createCodeCommitService } from '../services/awsCodeCommitService';
 import { getTreeProvider, setService } from '../state';
-import { inputText } from './prompts';
+import { inputText, requireText } from './prompts';
+import { createSsoProfile, performSsoLogin, SsoLoginError } from '../aws/sso';
+import { updateStatusBar } from '../ui/statusBar';
 
 /** The configure command handler. */
 export async function configureCommand(): Promise<void> {
@@ -55,4 +57,74 @@ export function reloadService(): void {
 	const nextService = createCodeCommitService(getAwsSettings());
 	setService(nextService);
 	getTreeProvider().updateService(nextService);
+}
+
+/** The login command handler. Performs IAM Identity Center SSO login. */
+export async function loginCommand(): Promise<void> {
+	const startUrl = await requireText('IAM Identity Center start URL', {
+		placeHolder: 'https://d-abc123.awsapps.com/start',
+		validate: (value) => {
+			const trimmed = value.trim();
+			if (!trimmed.startsWith('https://') && !trimmed.startsWith('http://')) {
+				return 'Expected a URL like https://d-abc123.awsapps.com/start.';
+			}
+			return undefined;
+		},
+	});
+	const region = await requireText('AWS region for SSO', {
+		placeHolder: 'us-east-1',
+		validate: validateRegion,
+	});
+
+	await vscode.window.withProgress(
+		{
+			location: vscode.ProgressLocation.Notification,
+			title: 'AWS CodeCommit Login',
+			cancellable: true,
+		},
+		async (progress, token) => {
+			progress.report({ message: 'Registering client and starting device authorization...' });
+			const result = await performSsoLogin(startUrl, region);
+			if (result instanceof SsoLoginError) {
+				await vscode.window.showErrorMessage(`Login failed — ${result.message}`);
+				updateStatusBar();
+				return;
+			}
+			progress.report({ message: 'Authorization received. Configuring profile...' });
+			const accountId = await requireText('AWS Account ID', {
+				placeHolder: '123456789012',
+				validate: (value) => {
+					return /^\d{12}$/.test(value.trim()) ? undefined : 'Expected a 12-digit AWS account ID.';
+				},
+			});
+			if (accountId === undefined) {
+				return;
+			}
+			const roleName = await requireText('IAM Role name', {
+				placeHolder: 'AWSAdministratorAccess',
+			});
+			if (roleName === undefined) {
+				return;
+			}
+			const profileName = await requireText('Profile name for this SSO session', {
+				placeHolder: 'sso-profile',
+				validate: (value) => {
+					return value.trim().length > 0 ? undefined : 'A profile name is required.';
+				},
+			});
+			if (profileName === undefined) {
+				return;
+			}
+			await createSsoProfile(profileName, startUrl, region, accountId, roleName);
+			const config = vscode.workspace.getConfiguration(CONFIG_SECTION);
+			await config.update('ssoProfile', profileName, vscode.ConfigurationTarget.Global);
+			reloadService();
+			updateStatusBar();
+			await vscode.window.showInformationMessage(
+				`AWS CodeCommit: Connected as '${profileName}'. Credentials cached and profile created.`
+			);
+			void result;
+			token.isCancellationRequested = true;
+		}
+	);
 }

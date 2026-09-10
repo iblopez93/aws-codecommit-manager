@@ -11,6 +11,7 @@ import { createCodeCommitService } from './services/awsCodeCommitService';
 import { getService, setService, setTreeProvider } from './state';
 import { CodeCommitTreeProvider } from './tree/codeCommitTreeProvider';
 import { REMOTE_FILE_SCHEME, RemoteFileContentProvider } from './tree/remoteFileContentProvider';
+import { createStatusBar, updateStatusBar } from './ui/statusBar';
 
 // This method is called when your extension is activated.
 export function activate(context: vscode.ExtensionContext) {
@@ -27,10 +28,12 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.workspace.onDidChangeConfiguration((event) => {
 			if (event.affectsConfiguration(CONFIG_SECTION)) {
 				reloadService();
+				updateStatusBar();
 			}
 		})
 	);
 
+	createStatusBar(context);
 	registerCommands(context);
 }
 

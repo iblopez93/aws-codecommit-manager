@@ -27,7 +27,7 @@
 		"viewsWelcome": [
 			{
 				"view": "aws-codecommit-manager.view",
-				"contents": "AWS CodeCommit repositories will appear here.\n[Configure AWS CodeCommit](command:aws-codecommit-manager.configure)\n[Refresh](command:aws-codecommit-manager.refresh)"
+				"contents": "AWS CodeCommit repositories will appear here.\n[Login](command:aws-codecommit-manager.login)\n[Configure AWS CodeCommit](command:aws-codecommit-manager.configure)\n[Refresh](command:aws-codecommit-manager.refresh)"
 			}
 		],
 		"commands": [
@@ -36,6 +36,12 @@
 				"title": "Configure AWS CodeCommit",
 				"category": "AWS CodeCommit",
 				"icon": "$(gear)"
+			},
+			{
+				"command": "aws-codecommit-manager.login",
+				"title": "Login",
+				"category": "AWS CodeCommit",
+				"icon": "$(plug)"
 			},
 			{
 				"command": "aws-codecommit-manager.refresh",
@@ -253,6 +259,11 @@
 					"default": "",
 					"markdownDescription": "Named AWS profile from `~/.aws/credentials` or `~/.aws/config` used for credentials. Leave empty to use the default credential chain."
 				},
+				"aws-codecommit-manager.ssoProfile": {
+					"type": "string",
+					"default": "",
+					"markdownDescription": "Named AWS profile configured with IAM Identity Center (SSO) credentials. When set, SSO credentials are used instead of the default credential chain."
+				},
 				"aws-codecommit-manager.commitHistoryLimit": {
 					"type": "number",
 					"default": 100,
@@ -295,6 +306,8 @@
 	},
 	"dependencies": {
 		"@aws-sdk/client-codecommit": "^3.1128.0",
+		"@aws-sdk/client-sso": "^3.1128.0",
+		"@aws-sdk/client-sso-oidc": "^3.1128.0",
 		"@aws-sdk/credential-providers": "^3.1128.0"
 	}
 }

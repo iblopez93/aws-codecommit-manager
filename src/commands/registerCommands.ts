@@ -7,7 +7,7 @@ import * as vscode from 'vscode';
 import { formatAppError, normalizeError } from '../domain/errors';
 import { getService } from '../state';
 import { createBranchCommand, deleteBranchCommand, setDefaultBranchCommand } from './branches';
-import { configureCommand } from './configure';
+import { configureCommand, loginCommand } from './configure';
 import { createCommitCommand, deleteFileCommand, openFileCommand, putFileCommand } from './files';
 import { loadMoreCommitsCommand, refreshCommand } from './navigation';
 import { CancelledError } from './prompts';
@@ -51,6 +51,7 @@ function guarded(label: string, handler: CommandHandler): CommandHandler {
 export function registerCommands(context: vscode.ExtensionContext): void {
 	const commands: [string, CommandHandler][] = [
 		['aws-codecommit-manager.configure', configureCommand],
+		['aws-codecommit-manager.login', loginCommand],
 		['aws-codecommit-manager.refresh', refreshCommand],
 		['aws-codecommit-manager.openFile', openFileCommand],
 		['aws-codecommit-manager.createBranch', createBranchCommand],
