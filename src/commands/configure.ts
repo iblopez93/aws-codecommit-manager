@@ -37,6 +37,7 @@ export async function configureCommand(): Promise<void> {
 	await config.update('profile', profile || undefined, vscode.ConfigurationTarget.Global);
 
 	reloadService();
+	await updateStatusBar();
 	const suffix = profile.length > 0 ? ` and profile '${profile}'` : '';
 	void vscode.window.showInformationMessage(`AWS CodeCommit configured for region '${region}'${suffix}.`);
 }
@@ -118,7 +119,7 @@ export async function loginCommand(): Promise<void> {
 			await createSsoProfile(profileName, startUrl, region, accountId, roleName);
 			const config = vscode.workspace.getConfiguration(CONFIG_SECTION);
 			await config.update('ssoProfile', profileName, vscode.ConfigurationTarget.Global);
-			reloadService();
+		reloadService();
 			await updateStatusBar();
 			await vscode.window.showInformationMessage(
 				`AWS CodeCommit: Connected as '${profileName}'. Credentials cached and profile created.`
