@@ -14,16 +14,16 @@ export function createStatusBar(context: vscode.ExtensionContext): void {
 	statusBarItem.command = 'aws-codecommit-manager.login';
 	statusBarItem.tooltip = 'Click to login to AWS CodeCommit';
 	context.subscriptions.push(statusBarItem);
-	updateStatusBar();
+	void updateStatusBar();
 	statusBarItem.show();
 }
 
 /** Updates the status bar based on current credential state. */
-export function updateStatusBar(): void {
+export async function updateStatusBar(): Promise<void> {
 	if (!statusBarItem) {
 		return;
 	}
-	const connected = isConnected();
+	const connected = await isConnected();
 	if (connected) {
 		statusBarItem.text = '$(check) AWS CodeCommit: Connected';
 		statusBarItem.backgroundColor = undefined;

@@ -19,7 +19,7 @@ export function activate(context: vscode.ExtensionContext) {
 	const treeProvider = new CodeCommitTreeProvider(getService());
 	setTreeProvider(treeProvider);
 
-	context.subscriptions.push(
+		context.subscriptions.push(
 		vscode.window.registerTreeDataProvider('aws-codecommit-manager.view', treeProvider),
 		vscode.workspace.registerTextDocumentContentProvider(
 			REMOTE_FILE_SCHEME,
@@ -28,7 +28,7 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.workspace.onDidChangeConfiguration((event) => {
 			if (event.affectsConfiguration(CONFIG_SECTION)) {
 				reloadService();
-				updateStatusBar();
+				void updateStatusBar();
 			}
 		})
 	);

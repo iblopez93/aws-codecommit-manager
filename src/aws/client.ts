@@ -29,16 +29,17 @@ export function createCodeCommitClient(settings: AwsSettings): CodeCommitClient 
  * Checks whether valid AWS credentials can be resolved for the given settings.
  * Returns true if credentials are available, false otherwise.
  */
-export function isConnected(settings?: AwsSettings): boolean {
+export async function isConnected(settings?: AwsSettings): Promise<boolean> {
 	try {
 		const client = createCodeCommitClient(settings ?? { commitHistoryLimit: 100 });
 		const credentials = (client.config as any).credentials;
 		if (typeof credentials === 'function') {
-			const result = credentials();
-			if (result && typeof result.then === 'function') {
-				return true;
+			try {
+				const result = await credentials();
+				return !!result;
+			} catch {
+				return false;
 			}
-			return !!result;
 		}
 		return !!credentials;
 	} catch {

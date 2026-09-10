@@ -87,7 +87,7 @@ export async function loginCommand(): Promise<void> {
 			const result = await performSsoLogin(startUrl, region);
 			if (result instanceof SsoLoginError) {
 				await vscode.window.showErrorMessage(`Login failed — ${result.message}`);
-				updateStatusBar();
+				await updateStatusBar();
 				return;
 			}
 			progress.report({ message: 'Authorization received. Configuring profile...' });
@@ -119,7 +119,7 @@ export async function loginCommand(): Promise<void> {
 			const config = vscode.workspace.getConfiguration(CONFIG_SECTION);
 			await config.update('ssoProfile', profileName, vscode.ConfigurationTarget.Global);
 			reloadService();
-			updateStatusBar();
+			await updateStatusBar();
 			await vscode.window.showInformationMessage(
 				`AWS CodeCommit: Connected as '${profileName}'. Credentials cached and profile created.`
 			);
