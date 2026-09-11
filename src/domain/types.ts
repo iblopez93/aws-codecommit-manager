@@ -110,6 +110,18 @@ export interface PullRequestInfo {
 	destinationCommit?: string;
 }
 
+/** The kind of change a file difference represents. */
+export type ChangeTypeEnum = 'A' | 'M' | 'D';
+
+/** A file difference between two commits or refs. */
+export interface DifferenceInfo {
+	path: string;
+	changeType: ChangeTypeEnum;
+	/** Blob ids on the before (destination) and after (source) sides. */
+	beforeBlobId?: string;
+	afterBlobId?: string;
+}
+
 /** Location of a code comment within a pull request comparison. */
 export interface CommentLocation {
 	filePath?: string;

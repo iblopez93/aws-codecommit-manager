@@ -9,17 +9,30 @@ import { shortId } from '../domain/mappers';
 import { basename, toRemotePath } from '../domain/paths';
 import { getService, getTreeProvider } from '../state';
 import { TreeNode } from '../tree/nodes';
-import { RemoteFileUri } from '../tree/remoteFileContentProvider';
+import { REMOTE_FILE_SCHEME, RemoteFileUri } from '../tree/remoteFileContentProvider';
 import { CancelledError, confirmAction, inputText, notifySuccess } from './prompts';
 import { refreshBranch, requireBranchName, requireBranchTip, requireRepositoryName, withProgress } from './common';
 
-/** Opens a remote file in a read-only editor tab. */
+/** Opens a remote file in an editable tab when it is at a branch tip. */
 export async function openFileCommand(node?: TreeNode): Promise<void> {
 	if (node?.kind !== 'file') {
 		return;
 	}
 	const uri = RemoteFileUri.build(node.repositoryName, node.branchName, node.entry.path, node.branchName);
+	// Commit-pinned revisions are enforced read-only by the provider on save.
 	await vscode.window.showTextDocument(uri, { preview: true });
+}
+
+/** Saves the active remote CodeCommit document back to CodeCommit. */
+export async function saveRemoteFileCommand(): Promise<void> {
+	const editor = vscode.window.activeTextEditor;
+	if (!editor || editor.document.uri.scheme !== REMOTE_FILE_SCHEME) {
+		throw new AppError('Open a remote CodeCommit file to save it to the branch.', { kind: 'config' });
+	}
+	const saved = await editor.document.save();
+	if (!saved) {
+		notifySuccess('The document was already saved to CodeCommit.');
+	}
 }
 
 /** Uploads a local file to a branch with PutFile. */

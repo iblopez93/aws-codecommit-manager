@@ -10,7 +10,7 @@ import { CodeCommitService } from '../services/codeCommitService';
 import { formatAppError, normalizeError } from '../domain/errors';
 import { compactArn, shortId } from '../domain/mappers';
 import { basename, dirname } from '../domain/paths';
-import { CommitInfo, PullRequestInfo } from '../domain/types';
+import { CommitInfo, PullRequestInfo, RepositoryDetails } from '../domain/types';
 import { contextValueOf, nodeId, TreeNode } from './nodes';
 import { RemoteFileUri } from './remoteFileContentProvider';
 
@@ -37,7 +37,16 @@ export class CodeCommitTreeProvider implements vscode.TreeDataProvider<TreeNode>
 	private readonly _onDidChangeTreeData = new vscode.EventEmitter<TreeNode | undefined>();
 	readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
+	/** Adds rich metadata to the hover cache for a repository. */
+	cacheRepositoryDetails(details: RepositoryDetails): void {
+		if (details.name) {
+			this.repositoryDetails.set(details.name, details);
+		}
+	}
+
 	private readonly commitHistory = new Map<string, CommitHistoryState>();
+	/** Rich repository metadata for hover tooltips, keyed by repository name. */
+	private readonly repositoryDetails = new Map<string, RepositoryDetails>();
 	private service: CodeCommitService;
 
 	constructor(service: CodeCommitService) {
@@ -97,7 +106,7 @@ export class CodeCommitTreeProvider implements vscode.TreeDataProvider<TreeNode>
 				item.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
 				break;
 			case 'repository':
-				item.tooltip = element.repository.name;
+				item.tooltip = buildRepositoryTooltip(element.repository.name, element.repository.id, this.repositoryDetails.get(element.repository.name));
 				item.iconPath = icon('repo');
 				item.collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
 				break;
@@ -156,6 +165,19 @@ export class CodeCommitTreeProvider implements vscode.TreeDataProvider<TreeNode>
 				item.iconPath = icon('git-pull-request');
 				item.collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
 				break;
+			case 'changedFilesGroup':
+				item.iconPath = icon('diff-multiple');
+				item.collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
+				break;
+			case 'changedFile': {
+				const icons: Record<string, string> = { A: 'diff-added', D: 'diff-removed', M: 'diff-modified' };
+				item.label = basename(element.difference.path);
+				item.description = `[${element.difference.changeType}] ${element.difference.path}`;
+				item.tooltip = `${element.difference.changeType}: ${element.difference.path}`;
+				item.iconPath = icon(icons[element.difference.changeType] ?? 'diff-modified');
+				item.collapsibleState = vscode.TreeItemCollapsibleState.None;
+				break;
+			}
 			case 'commentsGroup':
 				item.iconPath = icon('comment');
 				item.collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
@@ -198,6 +220,9 @@ export class CodeCommitTreeProvider implements vscode.TreeDataProvider<TreeNode>
 				return this.loadChildren(() => loadPullRequestsGroupChildren(this.service, element));
 			case 'pullRequest':
 				return this.loadChildren(() => loadPullRequestChildren(this.service, element));
+			case 'changedFilesGroup':
+				return this.loadChildren(() => loadChangedFilesGroupChildren(this.service, element));
+			case 'changedFile':
 			case 'commentsGroup':
 				return this.loadChildren(() => loadCommentsGroupChildren(this.service, element));
 			case 'file':
@@ -240,9 +265,16 @@ export class CodeCommitTreeProvider implements vscode.TreeDataProvider<TreeNode>
 				return { kind: 'commitsGroup', repositoryName: element.repositoryName, branchName: element.branchName };
 			case 'pullRequest':
 				return { kind: 'pullRequestsGroup', repositoryName: element.repositoryName };
+			case 'changedFilesGroup':
 			case 'commentsGroup':
 				return {
 					kind: 'pullRequest',
+					repositoryName: element.repositoryName,
+					pullRequest: element.pullRequest,
+				};
+			case 'changedFile':
+				return {
+					kind: 'changedFilesGroup',
 					repositoryName: element.repositoryName,
 					pullRequest: element.pullRequest,
 				};
@@ -284,6 +316,10 @@ function elementLabel(element: TreeNode): string {
 			return 'Pull Requests';
 		case 'pullRequest':
 			return `#${element.pullRequest.pullRequestId} ${element.pullRequest.title}`;
+		case 'changedFilesGroup':
+			return 'Changed Files';
+		case 'changedFile':
+			return `#${element.pullRequest.pullRequestId}: ${basename(element.difference.path)}`;
 		case 'commentsGroup':
 			return 'Comments';
 		case 'comment':
@@ -305,6 +341,33 @@ function buildCommitTooltip(commit: CommitInfo): string {
 	const lines = [commit.commitId];
 	if (author) {
 		lines.push(`by ${author}`);
+	}
+	return lines.join('\n');
+}
+
+/** Builds a hover tooltip for a repository node from cached metadata. */
+export function buildRepositoryTooltip(
+	name: string,
+	id: string | undefined,
+	details: RepositoryDetails | undefined
+): string {
+	const lines = [name];
+	if (id) {
+		lines.push(`id: ${id}`);
+	}
+	if (details) {
+		if (details.arn) {
+			lines.push(`ARN: ${details.arn}`);
+		}
+		if (details.accountId) {
+			lines.push(`Account: ${details.accountId}`);
+		}
+		if (details.defaultBranch) {
+			lines.push(`Default branch: ${details.defaultBranch}`);
+		}
+		if (details.cloneUrlHttp) {
+			lines.push(`HTTPS: ${details.cloneUrlHttp}`);
+		}
 	}
 	return lines.join('\n');
 }
@@ -424,7 +487,27 @@ async function loadPullRequestChildren(
 	service: CodeCommitService,
 	element: { repositoryName: string; pullRequest: PullRequestInfo }
 ): Promise<TreeNode[]> {
-	return [{ kind: 'commentsGroup', repositoryName: element.repositoryName, pullRequest: element.pullRequest }];
+	return [
+		{
+			kind: 'changedFilesGroup',
+			repositoryName: element.repositoryName,
+			pullRequest: element.pullRequest,
+		},
+		{ kind: 'commentsGroup', repositoryName: element.repositoryName, pullRequest: element.pullRequest },
+	];
+}
+
+async function loadChangedFilesGroupChildren(
+	service: CodeCommitService,
+	element: { repositoryName: string; pullRequest: PullRequestInfo }
+): Promise<TreeNode[]> {
+	const differences = await service.getPullRequestDifferences(element.pullRequest);
+	return differences.map((difference) => ({
+		kind: 'changedFile' as const,
+		repositoryName: element.repositoryName,
+		pullRequest: element.pullRequest,
+		difference,
+	}));
 }
 
 async function loadCommentsGroupChildren(

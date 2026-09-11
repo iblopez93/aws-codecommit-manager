@@ -5,9 +5,18 @@
 import * as vscode from 'vscode';
 
 import { PullRequestInfo } from '../domain/types';
+import { resolveWorkspaceMapping } from '../integration/workspaceMapping';
 import { getService, getTreeProvider } from '../state';
 import { TreeNode } from '../tree/nodes';
-import { CancelledError, confirmAction, inputText, notifySuccess, pickBranch } from './prompts';
+import { buildDetailsMarkdown, openChangedFileDiffs } from '../ui/pullRequestDetails';
+import {
+	CancelledError,
+	confirmAction,
+	inputText,
+	notifySuccess,
+	pickBranch,
+	pickPullRequest,
+} from './prompts';
 import { refreshPullRequests, requireRepositoryName, withProgress } from './common';
 
 /** Creates a pull request between two branches of a repository. */
@@ -19,7 +28,11 @@ export async function createPullRequestCommand(node?: TreeNode): Promise<void> {
 	if (node?.kind === 'branch') {
 		sourceBranch = node.branch.name;
 	} else {
-		const picked = await pickBranch(service, repositoryName, 'Source branch');
+		// Default the source branch to the workspace-mapped branch when it exists.
+		const mapping = await resolveWorkspaceMapping().catch(() => undefined);
+		const preferred =
+			mapping?.repositoryName === repositoryName ? mapping.branchName : undefined;
+		const picked = await pickBranch(service, repositoryName, 'Source branch', undefined, preferred);
 		if (picked === undefined) {
 			throw new CancelledError();
 		}
@@ -189,6 +202,35 @@ export async function addPullRequestCommentCommand(node?: TreeNode): Promise<voi
 		kind: 'commentsGroup',
 		repositoryName,
 		pullRequest,
+	});
+}
+
+/**
+ * Shows the full review of a pull request: a details panel with its metadata
+ * plus one diff editor per changed file between its source and destination.
+ */
+export async function showPullRequestReviewCommand(node?: TreeNode): Promise<void> {
+	const service = getService();
+	const repositoryName = node?.kind === 'pullRequest' ? node.repositoryName : await requireRepositoryName(service, node);
+	const pullRequest =
+		node?.kind === 'pullRequest'
+			? node.pullRequest
+			: await withProgress('Loading pull request...', async () => {
+					const picked = await pickPullRequest(service, repositoryName, 'Show Pull Request Review');
+					if (picked === undefined) {
+						throw new CancelledError();
+					}
+					const full = await service.getPullRequest(picked.pullRequestId);
+					return full;
+				});
+
+	await withProgress(`Loading changed files of pull request #${pullRequest.pullRequestId}...`, async () => {
+		const differences = await service.getPullRequestDifferences(pullRequest);
+		await openChangedFileDiffs(pullRequest, differences);
+		// Details document: opens as a read-only text preview with the metadata.
+		const details = buildDetailsMarkdown(pullRequest);
+		const doc = await vscode.workspace.openTextDocument({ content: details, language: 'markdown' });
+		await vscode.window.showTextDocument(doc, { preview: true, preserveFocus: true });
 	});
 }
 

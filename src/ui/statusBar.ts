@@ -29,8 +29,12 @@ export async function updateStatusBar(): Promise<void> {
 	if (connected) {
 		statusBarItem.text = `$(check) AWS CodeCommit: Connected (${getActiveProfile(settings)})`;
 		statusBarItem.backgroundColor = undefined;
+		statusBarItem.command = 'aws-codecommit-manager.statusBarMenu';
+		statusBarItem.tooltip = 'AWS CodeCommit actions (Refresh, Configure, Logs, Console)';
 	} else {
 		statusBarItem.text = '$(plug) AWS CodeCommit: Disconnected';
 		statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+		statusBarItem.command = 'aws-codecommit-manager.login';
+		statusBarItem.tooltip = 'Click to login to AWS CodeCommit';
 	}
 }

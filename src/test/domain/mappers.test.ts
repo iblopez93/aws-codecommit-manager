@@ -5,6 +5,8 @@ import {
 	mapBranchNames,
 	mapComments,
 	mapCommit,
+	mapDifference,
+	mapDifferences,
 	mapFile,
 	mapFolder,
 	mapPullRequest,
@@ -92,6 +94,49 @@ suite('domain/mappers', () => {
 		assert.strictEqual(pr.status, 'CLOSED');
 		assert.strictEqual(pr.sourceReference, 'refs/heads/a');
 		assert.strictEqual(pr.destinationCommit, 'd');
+	});
+
+	test('mapDifference maps change types and normalizes paths', () => {
+		const info = mapDifference({
+			changeType: 'A',
+			afterBlob: { blobId: 'blob-a', path: '/src/new.ts' },
+		});
+		assert.strictEqual(info.changeType, 'A');
+		assert.strictEqual(info.path, 'src/new.ts');
+		assert.strictEqual(info.afterBlobId, 'blob-a');
+		assert.strictEqual(info.beforeBlobId, undefined);
+	});
+
+	test('mapDifference falls back to modified for unknown change types', () => {
+		const info = mapDifference({
+			beforeBlob: { blobId: 'b1', path: 'src/old.ts' },
+			afterBlob: { blobId: 'b2', path: 'src/old.ts' },
+		});
+		assert.strictEqual(info.changeType, 'M');
+		assert.strictEqual(info.path, 'src/old.ts');
+	});
+
+	test('mapDifferences maps added and deleted sides using the present path', () => {
+		const infos = mapDifferences({
+			differences: [
+				{ changeType: 'D', beforeBlob: { blobId: 'b0', path: '/gone.ts' } },
+				{ changeType: 'A', afterBlob: { blobId: 'b1', path: 'new.ts' } },
+				{
+					changeType: 'M',
+					beforeBlob: { blobId: 'b2', path: 'mod.ts' },
+					afterBlob: { blobId: 'b3', path: 'mod.ts' },
+				},
+			],
+		});
+		assert.strictEqual(infos.length, 3);
+		assert.deepStrictEqual(
+			infos.map((info) => info.path),
+			['gone.ts', 'new.ts', 'mod.ts']
+		);
+		assert.deepStrictEqual(
+			infos.map((info) => info.changeType),
+			['D', 'A', 'M']
+		);
 	});
 
 	test('mapComments flattens grouped comments with locations', () => {

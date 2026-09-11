@@ -9,6 +9,7 @@ import {
 	CommitResult,
 	CreateCommitOptions,
 	CreatePullRequestOptions,
+	DifferenceInfo,
 	FileContent,
 	FolderContents,
 	PostCommentOptions,
@@ -26,6 +27,8 @@ export interface CodeCommitService {
 	// Repositories
 	listRepositories(): Promise<RepositoryInfo[]>;
 	getRepository(repositoryName: string): Promise<RepositoryDetails>;
+	createRepository(options: { name: string; description?: string }): Promise<RepositoryInfo>;
+	deleteRepository(repositoryName: string): Promise<void>;
 
 	// Branches
 	listBranches(repositoryName: string): Promise<BranchInfo[]>;
@@ -63,6 +66,7 @@ export interface CodeCommitService {
 	// Pull requests and comments
 	listPullRequests(repositoryName: string, status?: PullRequestStatus): Promise<PullRequestInfo[]>;
 	getPullRequest(pullRequestId: string): Promise<PullRequestInfo>;
+	getPullRequestDifferences(pullRequest: PullRequestInfo): Promise<DifferenceInfo[]>;
 	createPullRequest(options: CreatePullRequestOptions): Promise<PullRequestInfo>;
 	updatePullRequestTitle(pullRequestId: string, title: string): Promise<PullRequestInfo>;
 	updatePullRequestDescription(pullRequestId: string, description: string): Promise<PullRequestInfo>;

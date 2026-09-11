@@ -6,6 +6,7 @@ import {
 	BranchInfo,
 	CommentInfo,
 	CommitInfo,
+	DifferenceInfo,
 	FileEntry,
 	PullRequestInfo,
 	RepositoryInfo,
@@ -94,6 +95,19 @@ export interface CommentNode {
 	comment: CommentInfo;
 }
 
+export interface ChangedFilesGroupNode {
+	kind: 'changedFilesGroup';
+	repositoryName: string;
+	pullRequest: PullRequestInfo;
+}
+
+export interface ChangedFileNode {
+	kind: 'changedFile';
+	repositoryName: string;
+	pullRequest: PullRequestInfo;
+	difference: DifferenceInfo;
+}
+
 export interface ErrorNode {
 	kind: 'error';
 	message: string;
@@ -113,6 +127,8 @@ export type TreeNode =
 	| LoadMoreCommitsNode
 	| PullRequestsGroupNode
 	| PullRequestNode
+	| ChangedFilesGroupNode
+	| ChangedFileNode
 	| CommentsGroupNode
 	| CommentNode
 	| ErrorNode;
@@ -144,6 +160,10 @@ export function contextValueOf(node: TreeNode): string {
 			return 'pullRequestsGroup';
 		case 'pullRequest':
 			return 'pullRequest';
+		case 'changedFilesGroup':
+			return 'changedFilesGroup';
+		case 'changedFile':
+			return 'changedFile';
 		case 'commentsGroup':
 			return 'commentsGroup';
 		case 'comment':
@@ -180,6 +200,10 @@ export function nodeId(node: TreeNode): string {
 			return `pullRequestsGroup:${node.repositoryName}`;
 		case 'pullRequest':
 			return `pullRequest:${node.pullRequest.pullRequestId}`;
+		case 'changedFilesGroup':
+			return `changedFilesGroup:${node.pullRequest.pullRequestId}`;
+		case 'changedFile':
+			return `changedFile:${node.pullRequest.pullRequestId}/${node.difference.path}`;
 		case 'commentsGroup':
 			return `commentsGroup:${node.pullRequest.pullRequestId}`;
 		case 'comment':

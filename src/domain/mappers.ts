@@ -7,6 +7,7 @@ import {
 	Comment as SdkComment,
 	CommentsForPullRequest as SdkCommentsForPullRequest,
 	Commit as SdkCommit,
+	Difference as SdkDifference,
 	File as SdkFile,
 	GetFileOutput,
 	GetFolderOutput,
@@ -16,8 +17,10 @@ import {
 
 import {
 	BranchInfo,
+	ChangeTypeEnum,
 	CommentInfo,
 	CommitInfo,
+	DifferenceInfo,
 	FileContent,
 	FileEntry,
 	FolderContents,
@@ -197,6 +200,51 @@ export function mapComments(output: { commentsForPullRequestData?: SdkCommentsFo
 		}
 	}
 	return result;
+}
+
+/**
+ * Maps a GetDifferences entry into a domain difference. Paths are normalized to
+ * rootless form; unknown change types map to 'M' (the least destructive view).
+ */
+export function mapDifference(difference: SdkDifference): DifferenceInfo {
+	const beforeBlobId = difference.beforeBlob?.blobId;
+	const afterBlobId = difference.afterBlob?.blobId;
+	const beforePath = normalizePath(difference.beforeBlob?.path ?? '');
+	const afterPath = normalizePath(difference.afterBlob?.path ?? '');
+	const path = afterPath || beforePath;
+	const changeType: ChangeTypeEnum =
+		difference.changeType === 'A' || difference.changeType === 'D' ? difference.changeType : 'M';
+	return {
+		path,
+		changeType,
+		beforeBlobId,
+		afterBlobId,
+	};
+}
+
+/** Maps GetDifferences output pages into domain differences. */
+export function mapDifferences(output: { differences?: SdkDifference[] }): DifferenceInfo[] {
+	return (output.differences ?? []).map(mapDifference);
+}
+
+/**
+ * Groups review comments by their file location so the comments section and
+ * details panel render one thread per file/line. Comments without a location
+ * share a single "general" group. Pure and unit testable.
+ */
+export function groupComments(
+	comments: CommentInfo[]
+): { key: string; filePath?: string; filePosition?: number; comments: CommentInfo[] }[] {
+	const groups = new Map<string, { key: string; filePath?: string; filePosition?: number; comments: CommentInfo[] }>();
+	for (const comment of comments) {
+		const filePath = comment.location?.filePath;
+		const filePosition = comment.location?.filePosition;
+		const key = filePath ? `${filePath}:${filePosition ?? 1}` : 'general';
+		const group = groups.get(key) ?? { key, filePath, filePosition, comments: [] };
+		group.comments.push(comment);
+		groups.set(key, group);
+	}
+	return [...groups.values()];
 }
 
 /** Truncates a commit id for display. */

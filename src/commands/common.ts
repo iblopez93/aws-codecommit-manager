@@ -5,6 +5,8 @@
 import * as vscode from 'vscode';
 
 import { AppError } from '../domain/errors';
+import { buildKeepOrChangeItems } from '../integration/mappingDefaults';
+import { resolveWorkspaceMapping } from '../integration/workspaceMapping';
 import { CodeCommitService } from '../services/codeCommitService';
 import { getTreeProvider } from '../state';
 import { TreeNode } from '../tree/nodes';
@@ -15,15 +17,19 @@ export async function withProgress<T>(title: string, action: () => Promise<T>): 
 	return vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title }, action);
 }
 
-/** Picks a repository interactively. */
-export async function pickRepository(service: CodeCommitService): Promise<string | undefined> {
+/**
+ * Picks a repository interactively. When a mapped repository is provided and
+ * exists, it is offered first as the workspace default but stays changeable.
+ */
+export async function pickRepository(service: CodeCommitService, preferred?: string): Promise<string | undefined> {
 	const repositories = await service.listRepositories();
-	const items = repositories.map((repository) => ({
-		label: repository.name,
-		repositoryName: repository.name,
-	}));
+	const names = repositories.map((repository) => repository.name);
+	const items =
+		preferred !== undefined && names.includes(preferred)
+			? buildKeepOrChangeItems(preferred, names, (name) => name)
+			: names.map((name) => ({ label: name, value: name }));
 	const picked = await vscode.window.showQuickPick(items, { title: 'Select a repository' });
-	return picked?.repositoryName;
+	return picked?.value;
 }
 
 /** Resolves the repository name from a tree node or interactively. */
@@ -47,7 +53,8 @@ export async function requireRepositoryName(
 		case 'comment':
 			return node.repositoryName;
 		default: {
-			const name = await pickRepository(service);
+			const mapping = await resolveWorkspaceMapping().catch(() => undefined);
+			const name = await pickRepository(service, mapping?.repositoryName);
 			if (!name) {
 				throw new CancelledError();
 			}
@@ -72,7 +79,10 @@ export async function requireBranchName(
 		case 'loadMoreCommits':
 			return node.branchName;
 		default: {
-			const branchName = await pickBranch(service, repositoryName, 'Select a branch');
+			// Preselect the mapped branch when it belongs to this repository.
+			const mapping = await resolveWorkspaceMapping().catch(() => undefined);
+			const preferred = mapping?.repositoryName === repositoryName ? mapping.branchName : undefined;
+			const branchName = await pickBranch(service, repositoryName, 'Select a branch', undefined, preferred);
 			if (!branchName) {
 				throw new CancelledError();
 			}

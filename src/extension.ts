@@ -10,20 +10,22 @@ import { registerCommands } from './commands/registerCommands';
 import { createCodeCommitService } from './services/awsCodeCommitService';
 import { getService, setService, setTreeProvider } from './state';
 import { CodeCommitTreeProvider } from './tree/codeCommitTreeProvider';
-import { REMOTE_FILE_SCHEME, RemoteFileContentProvider } from './tree/remoteFileContentProvider';
+import { REMOTE_FILE_SCHEME, RemoteFileSystemProvider } from './tree/remoteFileContentProvider';
+import { initLog } from './ui/log';
 import { createStatusBar, updateStatusBar } from './ui/statusBar';
 
 // This method is called when your extension is activated.
 export function activate(context: vscode.ExtensionContext) {
+	initLog(context);
 	setService(createCodeCommitService(getAwsSettings()));
 	const treeProvider = new CodeCommitTreeProvider(getService());
 	setTreeProvider(treeProvider);
 
 		context.subscriptions.push(
 		vscode.window.registerTreeDataProvider('aws-codecommit-manager.view', treeProvider),
-		vscode.workspace.registerTextDocumentContentProvider(
+		vscode.workspace.registerFileSystemProvider(
 			REMOTE_FILE_SCHEME,
-			new RemoteFileContentProvider(getService())
+			new RemoteFileSystemProvider(getService())
 		),
 		vscode.workspace.onDidChangeConfiguration((event) => {
 			if (event.affectsConfiguration(CONFIG_SECTION)) {

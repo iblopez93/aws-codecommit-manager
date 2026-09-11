@@ -27,7 +27,51 @@
 		"viewsWelcome": [
 			{
 				"view": "aws-codecommit-manager.view",
-				"contents": "AWS CodeCommit repositories will appear here.\n[Login](command:aws-codecommit-manager.login)\n[Configure AWS CodeCommit](command:aws-codecommit-manager.configure)\n[Refresh](command:aws-codecommit-manager.refresh)"
+				"contents": "AWS CodeCommit repositories will appear here.\n[Login](command:aws-codecommit-manager.login)\n[Configure AWS CodeCommit](command:aws-codecommit-manager.configure)\n[Show Logs](command:aws-codecommit-manager.showLogs)\n[Getting Started Walkthrough](command:workbench.action.openWalkthrough?%22aws-codecommit-manager.gettingStarted%22)\n[Refresh](command:aws-codecommit-manager.refresh)"
+			}
+		],
+		"walkthroughs": [
+			{
+				"id": "aws-codecommit-manager.gettingStarted",
+				"title": "Getting Started with AWS CodeCommit",
+				"description": "Configure your AWS connection, log in with SSO, and make your first commit and pull request.",
+				"steps": [
+					{
+						"id": "configure",
+						"title": "Configure the AWS connection",
+						"description": "Set the region and profile used to reach AWS.\n[Configure Connection](command:aws-codecommit-manager.configure)",
+						"completionEvents": ["onCommand:aws-codecommit-manager.configure"],
+						"media": { "markdown": "walkthroughs/getting-started.md" }
+					},
+					{
+						"id": "login",
+						"title": "Log in with AWS SSO",
+						"description": "Start the interactive SSO device login.\n[Start SSO Login](command:aws-codecommit-manager.login)",
+						"completionEvents": ["onCommand:aws-codecommit-manager.login"],
+						"media": { "markdown": "walkthroughs/getting-started.md" }
+					},
+					{
+						"id": "browse",
+						"title": "Browse repositories and files",
+						"description": "Open the AWS CodeCommit view and explore repositories, branches, and files.\n[Refresh the View](command:aws-codecommit-manager.refresh)",
+						"completionEvents": ["onCommand:aws-codecommit-manager.openFile"],
+						"media": { "markdown": "walkthroughs/getting-started.md" }
+					},
+					{
+						"id": "commit",
+						"title": "Create your first commit",
+						"description": "Upload a file or create an atomic commit on a branch.\n[Upload File](command:aws-codecommit-manager.putFile)",
+						"completionEvents": ["onCommand:aws-codecommit-manager.putFile", "onCommand:aws-codecommit-manager.createCommit"],
+						"media": { "markdown": "walkthroughs/getting-started.md" }
+					},
+					{
+						"id": "pull-request",
+						"title": "Create a pull request",
+						"description": "Open a pull request between branches and review the changes.\n[Create Pull Request](command:aws-codecommit-manager.createPullRequest)",
+						"completionEvents": ["onCommand:aws-codecommit-manager.createPullRequest"],
+						"media": { "markdown": "walkthroughs/getting-started.md" }
+					}
+				]
 			}
 		],
 		"commands": [
@@ -54,6 +98,68 @@
 				"title": "Open Remote File",
 				"category": "AWS CodeCommit",
 				"icon": "$(open-preview)"
+			},
+			{
+				"command": "aws-codecommit-manager.saveRemoteFile",
+				"title": "Save to CodeCommit",
+				"category": "AWS CodeCommit",
+				"icon": "$(save)"
+			},
+			{
+				"command": "aws-codecommit-manager.compareWithLocal",
+				"title": "Compare Remote File with Local File",
+				"category": "AWS CodeCommit"
+			},
+			{
+				"command": "aws-codecommit-manager.compareAcrossBranches",
+				"title": "Compare File Across Branches",
+				"category": "AWS CodeCommit"
+			},
+			{
+				"command": "aws-codecommit-manager.openInCodeCommit",
+				"title": "Open Current File in CodeCommit",
+				"category": "AWS CodeCommit"
+			},
+			{
+				"command": "aws-codecommit-manager.compareWithCodeCommit",
+				"title": "Compare with CodeCommit",
+				"category": "AWS CodeCommit"
+			},
+			{
+				"command": "aws-codecommit-manager.createRepository",
+				"title": "Create Repository",
+				"category": "AWS CodeCommit",
+				"icon": "$(add)"
+			},
+			{
+				"command": "aws-codecommit-manager.deleteRepository",
+				"title": "Delete Repository",
+				"category": "AWS CodeCommit",
+				"icon": "$(trash)"
+			},
+			{
+				"command": "aws-codecommit-manager.copyCloneUrlHttps",
+				"title": "Copy Clone URL (HTTPS)",
+				"category": "AWS CodeCommit",
+				"icon": "$(copy)"
+			},
+			{
+				"command": "aws-codecommit-manager.copyCloneUrlGrc",
+				"title": "Copy Clone URL (GRC)",
+				"category": "AWS CodeCommit",
+				"icon": "$(copy)"
+			},
+			{
+				"command": "aws-codecommit-manager.openRepository",
+				"title": "Open in AWS Console",
+				"category": "AWS CodeCommit",
+				"icon": "$(globe)"
+			},
+			{
+				"command": "aws-codecommit-manager.repositoryDetails",
+				"title": "Repository Details",
+				"category": "AWS CodeCommit",
+				"icon": "$(info)"
 			},
 			{
 				"command": "aws-codecommit-manager.createBranch",
@@ -119,6 +225,11 @@
 				"icon": "$(close)"
 			},
 			{
+				"command": "aws-codecommit-manager.showPullRequestReview",
+				"title": "Show Pull Request Review",
+				"category": "AWS CodeCommit"
+			},
+			{
 				"command": "aws-codecommit-manager.addPullRequestComment",
 				"title": "Add Review Comment",
 				"category": "AWS CodeCommit",
@@ -150,9 +261,34 @@
 					"group": "inline"
 				},
 				{
+					"command": "aws-codecommit-manager.repositoryDetails",
+					"when": "view == aws-codecommit-manager.view && viewItem == repository",
+					"group": "1_repository"
+				},
+				{
+					"command": "aws-codecommit-manager.copyCloneUrlHttps",
+					"when": "view == aws-codecommit-manager.view && viewItem == repository",
+					"group": "1_repository"
+				},
+				{
+					"command": "aws-codecommit-manager.copyCloneUrlGrc",
+					"when": "view == aws-codecommit-manager.view && viewItem == repository",
+					"group": "1_repository"
+				},
+				{
+					"command": "aws-codecommit-manager.openRepository",
+					"when": "view == aws-codecommit-manager.view && viewItem == repository",
+					"group": "1_repository"
+				},
+				{
+					"command": "aws-codecommit-manager.deleteRepository",
+					"when": "view == aws-codecommit-manager.view && viewItem == repository",
+					"group": "3_danger"
+				},
+				{
 					"command": "aws-codecommit-manager.createBranch",
 					"when": "view == aws-codecommit-manager.view && viewItem == repository",
-					"group": "1_branches"
+					"group": "2_branches"
 				},
 				{
 					"command": "aws-codecommit-manager.createPullRequest",
@@ -200,6 +336,16 @@
 					"group": "inline"
 				},
 				{
+					"command": "aws-codecommit-manager.compareWithLocal",
+					"when": "view == aws-codecommit-manager.view && viewItem == file",
+					"group": "2_compare"
+				},
+				{
+					"command": "aws-codecommit-manager.compareAcrossBranches",
+					"when": "view == aws-codecommit-manager.view && (viewItem == file || viewItem == branch)",
+					"group": "2_compare"
+				},
+				{
 					"command": "aws-codecommit-manager.deleteFile",
 					"when": "view == aws-codecommit-manager.view && viewItem == file",
 					"group": "3_danger"
@@ -235,6 +381,11 @@
 					"group": "3_danger"
 				},
 				{
+					"command": "aws-codecommit-manager.showPullRequestReview",
+					"when": "view == aws-codecommit-manager.view && viewItem == pullRequest",
+					"group": "2_review"
+				},
+				{
 					"command": "aws-codecommit-manager.addPullRequestComment",
 					"when": "view == aws-codecommit-manager.view && (viewItem == pullRequest || viewItem == commentsGroup)",
 					"group": "1_comments"
@@ -243,6 +394,52 @@
 					"command": "aws-codecommit-manager.loadMoreCommits",
 					"when": "view == aws-codecommit-manager.view && viewItem == loadMoreCommits",
 					"group": "inline"
+				}
+			],
+			"editor/context": [
+				{
+					"command": "aws-codecommit-manager.openInCodeCommit",
+					"when": "resourceScheme == file",
+					"group": "aws-codecommit@1"
+				},
+				{
+					"command": "aws-codecommit-manager.compareWithCodeCommit",
+					"when": "resourceScheme == file",
+					"group": "aws-codecommit@2"
+				}
+			],
+			"commandPalette": [
+				{
+					"command": "aws-codecommit-manager.openInCodeCommit",
+					"when": "editorIsOpen"
+				},
+				{
+					"command": "aws-codecommit-manager.compareWithCodeCommit",
+					"when": "editorIsOpen"
+				},
+				{
+					"command": "aws-codecommit-manager.saveRemoteFile",
+					"when": "resourceScheme == codecommit-remote"
+				},
+				{
+					"command": "aws-codecommit-manager.deleteRepository",
+					"when": "false"
+				},
+				{
+					"command": "aws-codecommit-manager.copyCloneUrlHttps",
+					"when": "false"
+				},
+				{
+					"command": "aws-codecommit-manager.copyCloneUrlGrc",
+					"when": "false"
+				},
+				{
+					"command": "aws-codecommit-manager.openRepository",
+					"when": "false"
+				},
+				{
+					"command": "aws-codecommit-manager.repositoryDetails",
+					"when": "false"
 				}
 			]
 		},

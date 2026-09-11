@@ -7,12 +7,16 @@ import {
 	CreateCommitCommand,
 	CreateCommitInput,
 	CreatePullRequestCommand,
+	CreateRepositoryCommand,
 	DeleteBranchCommand,
 	DeleteFileCommand,
+	DeleteRepositoryCommand,
 	GetBranchCommand,
 	GetCommitCommand,
 	GetCommentsForPullRequestCommand,
 	GetCommentsForPullRequestOutput,
+	GetDifferencesCommand,
+	GetDifferencesInput,
 	GetFileCommand,
 	GetFolderCommand,
 	GetPullRequestCommand,
@@ -34,6 +38,7 @@ import {
 	mapBranchNames,
 	mapCommit,
 	mapComments,
+	mapDifferences,
 	mapFile,
 	mapFolder,
 	mapPullRequest,
@@ -47,6 +52,7 @@ import {
 	CommitResult,
 	CreateCommitOptions,
 	CreatePullRequestOptions,
+	DifferenceInfo,
 	FileContent,
 	FolderContents,
 	PostCommentOptions,
@@ -93,6 +99,21 @@ export class AwsCodeCommitService implements CodeCommitService {
 	async getRepository(repositoryName: string): Promise<RepositoryDetails> {
 		const output = await this.client.send(new GetRepositoryCommand({ repositoryName }));
 		return mapRepositoryMetadata(output.repositoryMetadata ?? {});
+	}
+
+	async createRepository(options: { name: string; description?: string }): Promise<RepositoryInfo> {
+		const output = await this.client.send(
+			new CreateRepositoryCommand({
+				repositoryName: options.name,
+				repositoryDescription: options.description ?? '',
+			})
+		);
+		const details = mapRepositoryMetadata(output.repositoryMetadata ?? {});
+		return { name: details.name, id: details.id };
+	}
+
+	async deleteRepository(repositoryName: string): Promise<void> {
+		await this.client.send(new DeleteRepositoryCommand({ repositoryName }));
 	}
 
 	async listBranches(repositoryName: string): Promise<BranchInfo[]> {
@@ -381,6 +402,36 @@ export class AwsCodeCommitService implements CodeCommitService {
 			});
 		}
 		return mapPullRequest(output.pullRequest);
+	}
+
+	/**
+	 * Fetches the changed-file list of a pull request via GetDifferences between
+	 * its destination (before) and source (after) commit ids. When a page would
+	 * be truncated (NextToken present), the command fails with a clear error so
+	 * the user is told the list is partial instead of silently incomplete.
+	 */
+	async getPullRequestDifferences(pullRequest: PullRequestInfo): Promise<DifferenceInfo[]> {
+		if (!pullRequest.destinationCommit || !pullRequest.sourceCommit) {
+			throw new AppError(
+				`Pull request #${pullRequest.pullRequestId} has no source or destination commit; its file list cannot be computed.`,
+				{ kind: 'codecommit' }
+			);
+		}
+		const input: GetDifferencesInput = {
+			repositoryName: pullRequest.repositoryName,
+			beforeCommitSpecifier: pullRequest.destinationCommit,
+			afterCommitSpecifier: pullRequest.sourceCommit,
+			MaxResults: 100,
+		};
+		const output = await this.client.send(new GetDifferencesCommand(input));
+		if (output.NextToken) {
+			throw new AppError(
+				`Pull request #${pullRequest.pullRequestId} has more changed files than one page supports; ` +
+					'the file list shown is incomplete.',
+				{ kind: 'codecommit' }
+			);
+		}
+		return mapDifferences(output);
 	}
 
 	async postComment(options: PostCommentOptions): Promise<void> {
